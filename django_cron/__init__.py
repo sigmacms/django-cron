@@ -20,15 +20,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-from threading import Timer
+from base import Job, cronScheduler, HOUR, DAY, WEEK, MONTH
 
-from django.conf import settings
-
-from base import Job, cronScheduler
-
-polling_frequency = getattr(settings, "CRON_POLLING_FREQUENCY", 300)
-
-def autodiscover():
+def autodiscover(start_timer=True, registering=True):
 	"""
 	Auto-discover INSTALLED_APPS cron.py modules and fail silently when
 	not present. This forces an import on them to register any cron jobs they
@@ -66,4 +60,4 @@ def autodiscover():
 		__import__("%s.cron" % app)
 		
 	# Step 4: once we find all the cron jobs, start the cronScheduler
-	Timer(polling_frequency, cronScheduler.execute).start()
+	cronScheduler.execute(start_timer=start_timer, registering=registering)

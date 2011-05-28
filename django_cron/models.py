@@ -26,8 +26,8 @@ from datetime import datetime
 class Job(models.Model):
     name = models.CharField(max_length=100)
     
-    # time between job runs (in seconds) // default: 1 day
-    run_frequency = models.PositiveIntegerField(default=86400)
+    # time between job runs (in minutes) // default: 1 day
+    run_frequency = models.PositiveIntegerField(default=1440)
     last_run = models.DateTimeField(default=datetime.now())
     
     instance = models.TextField()
