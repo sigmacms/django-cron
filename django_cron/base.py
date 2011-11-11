@@ -21,6 +21,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import os
 import cPickle
 from threading import Timer
 from datetime import datetime
@@ -44,6 +45,8 @@ MONTH = int(WEEK*4.333) # well sorta
 # more often that this number suggests, so keep an eye on it...
 # default value: 300 seconds == 5 min
 polling_frequency = getattr(settings, "CRON_POLLING_FREQUENCY", 300)
+###PID code
+cron_pid_file = getattr(settings, "CRON_PID_FILE", None)
 
 class Job(object):
     run_every = DAY
@@ -97,6 +100,12 @@ class CronScheduler(object):
         if not registering:
             status, created = models.Cron.objects.get_or_create(pk=1)
 
+            ###PID code
+            if cron_pid_file:
+                if not os.path.exists(cron_pid_file):
+                    f = open(cron_pid_file, 'w') #create the file if it doesn't exist yet.
+                    f.close()
+
             # This is important for 2 reasons:
             #     1. It keeps us for running more than one instance of the
             #        same job at a time
@@ -107,9 +116,34 @@ class CronScheduler(object):
 
             if status.executing:
                 print "Already executing"
+                ###PID code
+                ###check if django_cron is stuck
+                if cron_pid_file:
+                    pid_file = open(cron_pid_file, 'r')
+                    pid_content = pid_file.read()
+                    pid_file.close()
+                    if not pid_content:
+                        pass#File is empty, do nothing
+                    else:
+                        pid = int(pid_content)
+                        if os.path.exists('/proc/%s' % pid):
+                            print 'Verified! Process with pid %s is running.' % pid
+                        else:
+                            print 'Oops! process with pid %s is not running.' % pid
+                            print 'Fixing status in db. '
+                            status.executing = False
+                            status.save()
+                            subject = 'Fixed cron job for %s' % settings.SITE_NAME
+                            body = 'django_cron was stuck as we found process #%s is not running, yet status.executing==True.' % pid
+                            mail_admins(subject, body, fail_silently=True)
                 return
 
             status.executing = True
+            ###PID code
+            if cron_pid_file:
+                pid_file = open(cron_pid_file, 'w')
+                pid_file.write(str(os.getpid()))
+                pid_file.close()
             try:
                 status.save()
             except:
