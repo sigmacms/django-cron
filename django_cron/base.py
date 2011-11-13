@@ -34,6 +34,7 @@ from django.contrib.auth.models import User
 from django.core.mail import mail_admins
 from signals import cron_done
 import models
+import cron_settings
 
 HOUR = 60
 DAY = HOUR*24
@@ -45,8 +46,8 @@ MONTH = int(WEEK*4.333) # well sorta
 # more often that this number suggests, so keep an eye on it...
 # default value: 300 seconds == 5 min
 polling_frequency = getattr(settings, "CRON_POLLING_FREQUENCY", 300)
-###PID code
-cron_pid_file = getattr(settings, "CRON_PID_FILE", None)
+
+cron_pid_file = cron_settings.PID_FILE
 
 class Job(object):
     run_every = DAY
