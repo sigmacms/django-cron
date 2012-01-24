@@ -35,5 +35,8 @@ class Job(models.Model):
     kwargs = models.TextField()
     queued = models.BooleanField(default=True)
 
+    def __unicode__(self):
+        return self.name
+
 class Cron(models.Model):
     executing = models.BooleanField(default=False)
