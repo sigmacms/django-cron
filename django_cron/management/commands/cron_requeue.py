@@ -2,8 +2,6 @@
 
 Usage: ./manage.py cron_requeue
 """
-#
-# usage: manage.py cron_reque
 
 from django.core.management.base import NoArgsCommand
 from django_cron.models import Job
