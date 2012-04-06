@@ -14,4 +14,4 @@ class Command(NoArgsCommand):
 
     def handle_noargs(self, **options):
         django_cron.autodiscover(start_timer=False, registering=False)
-        print "%s cronjobs for %s finished" % (datetime.now(), settings.SITE_NAME)
+        print "%s: Cronjobs for %s finished" % (datetime.now(), settings.SITE_NAME)
