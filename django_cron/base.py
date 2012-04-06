@@ -159,7 +159,13 @@ class CronScheduler(object):
             jobs = models.Job.objects.all()
             for job in jobs:
                 if job.queued:
-                    if (datetime.now() - job.last_run) > timedelta(minutes=job.run_frequency):
+                    
+                    # Discard the seconds to prevent drift. Thanks to Josh Cartmell
+                    now = datetime.now()
+                    now = datetime(now.year, now.month, now.day, now.hour, now.minute)
+                    last_run = datetime(job.last_run.year, job.last_run.month, job.last_run.day, job.last_run.hour, job.last_run.minute)
+                    
+                    if (now - last_run) >= timedelta(minutes=job.run_frequency):
                         inst = cPickle.loads(str(job.instance))
                         args = cPickle.loads(str(job.args))
                         kwargs = cPickle.loads(str(job.kwargs))
