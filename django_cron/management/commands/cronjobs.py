@@ -3,6 +3,8 @@
 #
 # usage: manage.py cronjobs
 
+from datetime import datetime
+
 from django.conf import settings
 from django.core.management.base import NoArgsCommand
 import django_cron
@@ -12,4 +14,4 @@ class Command(NoArgsCommand):
 
     def handle_noargs(self, **options):
         django_cron.autodiscover(start_timer=False, registering=False)
-        print "cronjobs for %s finished" % settings.SITE_NAME
+        print "%s cronjobs for %s finished" % (datetime.now(), settings.SITE_NAME)
