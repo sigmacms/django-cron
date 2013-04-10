@@ -28,7 +28,7 @@ Example cron.py::
 	run_every = HOUR
 		
 	def job(self):
-		# This will be executed every 5 minutes
+		# This will be executed every hour
 		check_feedback_mailbox()
 
   cronScheduler.register(CheckMail)
