@@ -27,7 +27,9 @@ from threading import Timer
 from datetime import datetime
 from datetime import timedelta
 import sys
+import socket
 
+from django.template.loader import render_to_string
 from django.dispatch import dispatcher
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -135,7 +137,14 @@ class CronScheduler(object):
                             status.executing = False
                             status.save()
                             subject = 'Fixed cron job for %s' % settings.SITE_NAME
-                            body = 'django_cron was stuck as we found process #%s is not running, yet status.executing==True.' % pid
+                            context = {
+                                'pid': pid,
+                                'host': socket.gethostname(),
+                                'settings': settings,
+                                'non_queued_jobs': models.Job.objects.filter(queued=False),
+                                'queued_jobs': models.Job.objects.exclude(queued=False),
+                            }
+                            body = render_to_string('django_cron/fixed_job_stuck.txt', context)
                             mail_admins(subject, body, fail_silently=True)
                 return
 
