@@ -1,0 +1,17 @@
+django_cron was stuck as we found process #{{ pid }} is not running, yet status.executing==True.
+
+host: {{ host }}
+site: {{ settings.SITE_DOMAIN }}
+project path: {{ settings.PROJECT_DIR }}
+
+{% if non_queued_jobs.exists %}
+The following cron jobs are not queued 
+{% for job in non_queued_jobs %}
+    Name: {{ job.name }}
+    Last run: {{ job.last_run }}
+    Queued: {{ job.queued }}
+{% endfor %}
+
+{%else %}
+All cron jobs are queued. 
+{% endif %}
