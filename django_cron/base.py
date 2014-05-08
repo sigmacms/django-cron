@@ -175,11 +175,15 @@ class CronScheduler(object):
                     last_run = datetime(job.last_run.year, job.last_run.month, job.last_run.day, job.last_run.hour, job.last_run.minute)
                     
                     if (now - last_run) >= timedelta(minutes=job.run_frequency):
-                        inst = cPickle.loads(str(job.instance))
-                        args = cPickle.loads(str(job.args))
-                        kwargs = cPickle.loads(str(job.kwargs))
-
                         try:
+                            try:
+                                inst = cPickle.loads(str(job.instance))
+                                args = cPickle.loads(str(job.args))
+                                kwargs = cPickle.loads(str(job.kwargs))
+                            except:
+                                job.delete()
+                                raise
+                            
                             inst.run(*args, **kwargs)
                             job.last_run = datetime.now()
                             job.save()
@@ -194,8 +198,9 @@ class CronScheduler(object):
                             except:
                                 #Code will fail in django 1.4 or later as user.message_set is no longer available
                                 pass
-                            job.queued = False
-                            job.save()
+                            if job.id:#job might have been deleted. 
+                                job.queued = False
+                                job.save()
                             import traceback
                             exc_info = sys.exc_info()
                             stack = ''.join(traceback.format_tb(exc_info[2]))
@@ -227,4 +232,5 @@ class CronScheduler(object):
 
 
 cronScheduler = CronScheduler()
+
 
