@@ -184,9 +184,28 @@ class CronScheduler(object):
                                 job.delete()
                                 raise
                             
-                            inst.run(*args, **kwargs)
-                            job.last_run = datetime.now()
-                            job.save()
+                            
+                            run_job_with_retry = None
+                            def run_job():
+                                inst.run(*args, **kwargs)
+                                job.last_run = datetime.now()
+                                job.save()
+                            
+                            if cron_settings.RETRY:
+                                try:
+                                    #when retrying library is available we retry a few times 
+                                    from retrying import retry
+                                    @retry(wait_exponential_multiplier=1000, wait_exponential_max=10000, stop_max_delay=30000)
+                                    def run_job_with_retry():
+                                        run_job()
+                                except ImportError:
+                                    pass
+                                
+                            if run_job_with_retry:
+                                run_job_with_retry()
+                            else:
+                                run_job()
+
 
                         except Exception, err:
                             # if the job throws an error, just remove it from
