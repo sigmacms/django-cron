@@ -2,7 +2,7 @@ django_cron was stuck as we found process #{{ pid }} is not running, yet status.
 
 host: {{ host }}
 site: {{ settings.SITE_DOMAIN }}
-project path: {{ settings.PROJECT_DIR }}
+project path: {% firstof settings.BASE_DIR settings.PROJECT_DIR %}
 
 {% if non_queued_jobs.exists %}
 The following cron jobs are not queued 
