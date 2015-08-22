@@ -1,4 +1,5 @@
-"""Requeue all the cronjobs.
+"""
+Requeue all the cronjobs.
 
 Usage: ./manage.py cron_requeue
 """

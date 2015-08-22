@@ -5,6 +5,7 @@ from django.http import HttpResponseRedirect
 
 from models import Job
 
+
 @staff_member_required
 def restart(request):
     for j in Job.objects.all():

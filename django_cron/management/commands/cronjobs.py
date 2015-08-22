@@ -1,7 +1,9 @@
-#
-# run the cron service (intended to be executed from a cron job)
-#
-# usage: manage.py cronjobs
+"""
+Run the cron service (intended to be executed from a cron job)
+
+Rsage: manage.py cronjobs
+"""
+
 import sys
 import signal
 from datetime import datetime
@@ -10,7 +12,8 @@ from django.conf import settings
 from django.core.management.base import NoArgsCommand
 import django_cron
 
-# exit when the command last longer than CRON_TIMEOUT, if it's set.  
+
+# Exit when the command last longer than CRON_TIMEOUT, if it's set
 if getattr(settings, 'CRON_TIMEOUT', False):
     def timeout_check(signum, stack):
         print 'Timeout, exiting!'

@@ -1,10 +1,12 @@
-#
-# run the cron service (intended to be executed from a cron job)
-#
-# usage: manage.py cronjobs
+"""
+Run the cron service (intended to be executed from a cron job)
+
+usage: manage.py cronjobs
+"""
 
 from django.core.management.base import NoArgsCommand
 from django_cron.models import Cron
+
 
 class Command(NoArgsCommand):
     help = "reset the django cron status"

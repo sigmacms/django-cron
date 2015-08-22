@@ -30,7 +30,6 @@ import sys
 import socket
 
 from django.template.loader import render_to_string
-from django.dispatch import dispatcher
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.mail import mail_admins
@@ -39,11 +38,11 @@ import models
 import cron_settings
 
 HOUR = 60
-DAY = HOUR*24
-WEEK = DAY*7
-MONTH = int(WEEK*4.333) # well sorta
+DAY = HOUR * 24
+WEEK = DAY * 7
+MONTH = int(WEEK * 4.333)  # well sorta
 
-# how often to check if jobs are ready to be run (in seconds)
+# How often to check if jobs are ready to be run (in seconds)
 # in reality if you have a multithreaded server, it may get checked
 # more often that this number suggests, so keep an eye on it...
 # default value: 300 seconds == 5 min
@@ -51,10 +50,12 @@ polling_frequency = getattr(settings, "CRON_POLLING_FREQUENCY", 300)
 
 cron_pid_file = cron_settings.PID_FILE
 
+
 class Job(object):
+    
     run_every = DAY
 
-    def run(self, *args, **kwargs):  
+    def run(self, *args, **kwargs):
         self.job()
         cron_done.send(sender=self, *args, **kwargs)
         
@@ -64,7 +65,9 @@ class Job(object):
         """
         pass
 
+
 class CronScheduler(object):
+    
     def register(self, job_class, *args, **kwargs):
         """
         Register the given Job with the scheduler class
@@ -83,7 +86,6 @@ class CronScheduler(object):
         job.run_frequency = job_instance.run_every
         job.save()
 
-
     def unregister(self, job_class, *args, **kwargs):
 
         job_instance = job_class()
@@ -94,7 +96,6 @@ class CronScheduler(object):
             job.delete()
         except models.Job.DoesNotExist:
             pass
-
 
     def execute(self, start_timer=True, registering=False):
         """
@@ -180,12 +181,12 @@ class CronScheduler(object):
                                 inst = cPickle.loads(str(job.instance))
                                 args = cPickle.loads(str(job.args))
                                 kwargs = cPickle.loads(str(job.kwargs))
-                            except:
+                            except Exception:
                                 job.delete()
                                 raise
                             
-                            
                             run_job_with_retry = None
+                            
                             def run_job():
                                 inst.run(*args, **kwargs)
                                 job.last_run = datetime.now()
@@ -193,9 +194,13 @@ class CronScheduler(object):
                             
                             if cron_settings.RETRY:
                                 try:
-                                    #when retrying library is available we retry a few times 
+                                    # When retrying library is available we retry a few times
                                     from retrying import retry
-                                    @retry(wait_exponential_multiplier=1000, wait_exponential_max=10000, stop_max_delay=30000)
+                                    @retry(
+                                        wait_exponential_multiplier=1000,
+                                        wait_exponential_max=10000,
+                                        stop_max_delay=30000
+                                    )
                                     def run_job_with_retry():
                                         run_job()
                                 except ImportError:
@@ -206,18 +211,20 @@ class CronScheduler(object):
                             else:
                                 run_job()
 
-
                         except Exception, err:
-                            # if the job throws an error, just remove it from
+                            # If the job throws an error, just remove it from
                             # the queue. That way we can find/fix the error and
                             # requeue the job manually
                             try:
                                 for u in User.objects.filter(is_staff=True):
-                                    u.message_set.create(message="Error running job: %s: %s Please notify the administrator." % (job.name, err))
-                            except:
-                                #Code will fail in django 1.4 or later as user.message_set is no longer available
+                                    u.message_set.create(
+                                        message="Error running job: %s: %s "
+                                                "Please notify the administrator." % (job.name, err)
+                                    )
+                            except Exception:
+                                # Code will fail in django 1.4 or later as user.message_set is no longer available
                                 pass
-                            if job.id:#job might have been deleted. 
+                            if job.id:  # Job might have been deleted
                                 job.queued = False
                                 job.save()
                             import traceback
@@ -233,7 +240,6 @@ class CronScheduler(object):
         if start_timer:
             # Set up for this function to run again
             Timer(polling_frequency, self.execute).start()
-
 
     def mail_exception(self, job, module, err, stack=None):
         subject = 'Cron job failed for %s' % settings.SITE_NAME

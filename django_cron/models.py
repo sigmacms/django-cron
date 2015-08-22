@@ -21,10 +21,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 from django.db import models
-from datetime import datetime
 from django.utils import timezone
 
+
 class Job(models.Model):
+    
     name = models.CharField(max_length=100)
     
     # Time between job runs (in minutes) // default: 1 day
@@ -38,6 +39,7 @@ class Job(models.Model):
 
     def __unicode__(self):
         return self.name
+
 
 class Cron(models.Model):
     executing = models.BooleanField(default=False)
