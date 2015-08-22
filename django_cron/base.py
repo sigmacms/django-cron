@@ -34,7 +34,6 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.mail import mail_admins
 from signals import cron_done
-import models
 import cron_settings
 
 HOUR = 60
@@ -73,6 +72,9 @@ class CronScheduler(object):
         Register the given Job with the scheduler class
         """
         
+        # Move import here to silence Django 1.8 warnings about importing models early
+        import models
+        
         job_instance = job_class()
         
         if not isinstance(job_instance, Job):
@@ -87,6 +89,9 @@ class CronScheduler(object):
         job.save()
 
     def unregister(self, job_class, *args, **kwargs):
+        
+        # Move import here to silence Django 1.8 warnings about importing models early
+        import models
 
         job_instance = job_class()
         if not isinstance(job_instance, Job):
@@ -101,6 +106,10 @@ class CronScheduler(object):
         """
         Queue all Jobs for execution
         """
+        
+        # Move import here to silence Django 1.8 warnings about importing models early
+        import models
+        
         if not registering:
             status, created = models.Cron.objects.get_or_create(pk=1)
 
@@ -242,6 +251,7 @@ class CronScheduler(object):
             Timer(polling_frequency, self.execute).start()
 
     def mail_exception(self, job, module, err, stack=None):
+        
         subject = 'Cron job failed for %s' % settings.SITE_NAME
         body = '''
         Cron job failed for %s
