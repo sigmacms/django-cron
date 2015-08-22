@@ -22,13 +22,14 @@ THE SOFTWARE.
 """
 from django.db import models
 from datetime import datetime
+from django.utils import timezone
 
 class Job(models.Model):
     name = models.CharField(max_length=100)
     
-    # time between job runs (in minutes) // default: 1 day
+    # Time between job runs (in minutes) // default: 1 day
     run_frequency = models.PositiveIntegerField(default=1440)
-    last_run = models.DateTimeField(default=datetime.now())
+    last_run = models.DateTimeField(default=timezone.now)
     
     instance = models.TextField()
     args = models.TextField()
