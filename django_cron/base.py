@@ -224,15 +224,6 @@ class CronScheduler(object):
                             # If the job throws an error, just remove it from
                             # the queue. That way we can find/fix the error and
                             # requeue the job manually
-                            try:
-                                for u in User.objects.filter(is_staff=True):
-                                    u.message_set.create(
-                                        message="Error running job: %s: %s "
-                                                "Please notify the administrator." % (job.name, err)
-                                    )
-                            except Exception:
-                                # Code will fail in django 1.4 or later as user.message_set is no longer available
-                                pass
                             if job.id:  # Job might have been deleted
                                 job.queued = False
                                 job.save()
