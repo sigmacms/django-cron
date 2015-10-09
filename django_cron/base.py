@@ -190,10 +190,15 @@ class CronScheduler(object):
                                 inst = cPickle.loads(str(job.instance))
                                 args = cPickle.loads(str(job.args))
                                 kwargs = cPickle.loads(str(job.kwargs))
-                            except Exception:
-                                job.delete()
+                            except AttributeError, e:
+                                if e.message.startswith(''''module' object has no attribute'''):
+                                    job.delete() # The job had been deleted in code
                                 raise
-                            
+                            except ImportError, e:
+                                if e.message == 'No module named cron':
+                                    job.delete() # The whole cron.py file was deleted
+                                raise
+
                             run_job_with_retry = None
                             
                             def run_job():
