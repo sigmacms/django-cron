@@ -21,8 +21,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 from django.db import models
-from django.utils import timezone
-
+try:
+    from django.utils import timezone
+    now = timezone.now
+except ImportError:
+    # Django<=1.3 compatibility
+    from datetime import datetime
+    now = datetime.now
 
 class Job(models.Model):
     
@@ -30,7 +35,7 @@ class Job(models.Model):
     
     # Time between job runs (in minutes) // default: 1 day
     run_frequency = models.PositiveIntegerField(default=1440)
-    last_run = models.DateTimeField(default=timezone.now)
+    last_run = models.DateTimeField(default=now)
     
     instance = models.TextField()
     args = models.TextField()
