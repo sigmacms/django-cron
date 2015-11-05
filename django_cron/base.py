@@ -53,6 +53,7 @@ cron_pid_file = cron_settings.PID_FILE
 class Job(object):
     
     run_every = DAY
+    unreliable = 0 # for unreliable jobs, setting is in minutes
 
     def run(self, *args, **kwargs):
         self.job()
@@ -183,8 +184,10 @@ class CronScheduler(object):
                     now = datetime.now()
                     now = datetime(now.year, now.month, now.day, now.hour, now.minute)
                     last_run = datetime(job.last_run.year, job.last_run.month, job.last_run.day, job.last_run.hour, job.last_run.minute)
-                    
-                    if (now - last_run) >= timedelta(minutes=job.run_frequency):
+                    since_last_run = now - last_run
+                    inst = None
+
+                    if since_last_run >= timedelta(minutes=job.run_frequency):
                         try:
                             try:
                                 inst = cPickle.loads(str(job.instance))
@@ -200,7 +203,7 @@ class CronScheduler(object):
                                 raise
 
                             run_job_with_retry = None
-                            
+
                             def run_job():
                                 inst.run(*args, **kwargs)
                                 job.last_run = datetime.now()
@@ -229,16 +232,20 @@ class CronScheduler(object):
                             # If the job throws an error, just remove it from
                             # the queue. That way we can find/fix the error and
                             # requeue the job manually
+                            unreliable_time = timedelta(minutes=getattr(inst, 'unreliable', 0))
                             if job.id:  # Job might have been deleted
-                                job.queued = False
-                                job.save()
-                            import traceback
-                            exc_info = sys.exc_info()
-                            stack = ''.join(traceback.format_tb(exc_info[2]))
-                            if not settings.LOCAL_DEV:
-                                self.mail_exception(job.name, inst.__module__, err, stack)
-                            else:
-                                print stack
+                                # when the job is marked unreliable, we fail silently if it's within unreliable time.
+                                if since_last_run >= unreliable_time:
+                                    job.queued = False
+                                    job.save()
+                            if since_last_run >= unreliable_time:
+                                import traceback
+                                exc_info = sys.exc_info()
+                                stack = ''.join(traceback.format_tb(exc_info[2]))
+                                if not settings.LOCAL_DEV:
+                                    self.mail_exception(job.name, inst.__module__, err, stack)
+                                else:
+                                    print stack
             status.executing = False
             status.save()
 
