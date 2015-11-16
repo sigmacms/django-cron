@@ -107,7 +107,6 @@ class CronScheduler(object):
         """
         Queue all Jobs for execution
         """
-        
         # Move import here to silence Django 1.8 warnings about importing models early
         import models
         
