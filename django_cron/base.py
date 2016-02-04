@@ -176,76 +176,78 @@ class CronScheduler(object):
                     Timer(polling_frequency, self.execute).start()
                 return
 
-            jobs = models.Job.objects.all()
+            jobs = models.Job.objects.filter(queued=True)
+            if jobs and cron_settings.SINGLE_JOB_MODE:
+                jobs = [jobs[0]] # When SINGLE_JOB_MODE is on we only run one job at a time.
+
             for job in jobs:
-                if job.queued:
-                    
-                    # Discard the seconds to prevent drift. Thanks to Josh Cartmell
-                    now = datetime.now()
-                    now = datetime(now.year, now.month, now.day, now.hour, now.minute)
-                    last_run = datetime(job.last_run.year, job.last_run.month, job.last_run.day, job.last_run.hour, job.last_run.minute)
-                    since_last_run = now - last_run
-                    inst = None
 
-                    if since_last_run >= timedelta(minutes=job.run_frequency):
+                # Discard the seconds to prevent drift. Thanks to Josh Cartmell
+                now = datetime.now()
+                now = datetime(now.year, now.month, now.day, now.hour, now.minute)
+                last_run = datetime(job.last_run.year, job.last_run.month, job.last_run.day, job.last_run.hour, job.last_run.minute)
+                since_last_run = now - last_run
+                inst = None
+
+                if since_last_run >= timedelta(minutes=job.run_frequency):
+                    try:
                         try:
+                            inst = cPickle.loads(str(job.instance))
+                            args = cPickle.loads(str(job.args))
+                            kwargs = cPickle.loads(str(job.kwargs))
+                        except AttributeError, e:
+                            if e.message.startswith(''''module' object has no attribute'''):
+                                job.delete() # The job had been deleted in code
+                            raise
+                        except ImportError, e:
+                            if e.message == 'No module named cron':
+                                job.delete() # The whole cron.py file was deleted
+                            raise
+
+                        run_job_with_retry = None
+
+                        def run_job():
+                            inst.run(*args, **kwargs)
+                            job.last_run = datetime.now()
+                            job.save()
+
+                        if cron_settings.RETRY:
                             try:
-                                inst = cPickle.loads(str(job.instance))
-                                args = cPickle.loads(str(job.args))
-                                kwargs = cPickle.loads(str(job.kwargs))
-                            except AttributeError, e:
-                                if e.message.startswith(''''module' object has no attribute'''):
-                                    job.delete() # The job had been deleted in code
-                                raise
-                            except ImportError, e:
-                                if e.message == 'No module named cron':
-                                    job.delete() # The whole cron.py file was deleted
-                                raise
+                                # When retrying library is available we retry a few times
+                                from retrying import retry
+                                @retry(
+                                    wait_exponential_multiplier=1000,
+                                    wait_exponential_max=10000,
+                                    stop_max_delay=30000
+                                )
+                                def run_job_with_retry():
+                                    run_job()
+                            except ImportError:
+                                pass
 
-                            run_job_with_retry = None
+                        if run_job_with_retry:
+                            run_job_with_retry()
+                        else:
+                            run_job()
 
-                            def run_job():
-                                inst.run(*args, **kwargs)
-                                job.last_run = datetime.now()
-                                job.save()
-                            
-                            if cron_settings.RETRY:
-                                try:
-                                    # When retrying library is available we retry a few times
-                                    from retrying import retry
-                                    @retry(
-                                        wait_exponential_multiplier=1000,
-                                        wait_exponential_max=10000,
-                                        stop_max_delay=30000
-                                    )
-                                    def run_job_with_retry():
-                                        run_job()
-                                except ImportError:
-                                    pass
-                                
-                            if run_job_with_retry:
-                                run_job_with_retry()
-                            else:
-                                run_job()
-
-                        except Exception, err:
-                            # If the job throws an error, just remove it from
-                            # the queue. That way we can find/fix the error and
-                            # requeue the job manually
-                            unreliable_time = timedelta(minutes=getattr(inst, 'unreliable', 0))
-                            if job.id:  # Job might have been deleted
-                                # when the job is marked unreliable, we fail silently if it's within unreliable time.
-                                if since_last_run >= unreliable_time:
-                                    job.queued = False
-                                    job.save()
+                    except Exception, err:
+                        # If the job throws an error, just remove it from
+                        # the queue. That way we can find/fix the error and
+                        # requeue the job manually
+                        unreliable_time = timedelta(minutes=getattr(inst, 'unreliable', 0))
+                        if job.id:  # Job might have been deleted
+                            # when the job is marked unreliable, we fail silently if it's within unreliable time.
                             if since_last_run >= unreliable_time:
-                                import traceback
-                                exc_info = sys.exc_info()
-                                stack = ''.join(traceback.format_tb(exc_info[2]))
-                                if not settings.LOCAL_DEV:
-                                    self.mail_exception(job.name, inst.__module__, err, stack)
-                                else:
-                                    print stack
+                                job.queued = False
+                                job.save()
+                        if since_last_run >= unreliable_time:
+                            import traceback
+                            exc_info = sys.exc_info()
+                            stack = ''.join(traceback.format_tb(exc_info[2]))
+                            if not settings.LOCAL_DEV:
+                                self.mail_exception(job.name, inst.__module__, err, stack)
+                            else:
+                                print stack
             status.executing = False
             status.save()
 
