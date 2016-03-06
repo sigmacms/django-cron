@@ -20,7 +20,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-from base import Job, cronScheduler, HOUR, DAY, WEEK, MONTH
+from base import cronScheduler
 
 
 def autodiscover(start_timer=True, registering=True):
