@@ -31,7 +31,6 @@ import socket
 
 from django.template.loader import render_to_string
 from django.conf import settings
-from django.contrib.auth.models import User
 from django.core.mail import mail_admins
 from signals import cron_done
 import cron_settings
