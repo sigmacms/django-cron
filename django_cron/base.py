@@ -72,6 +72,10 @@ class CronScheduler(object):
         Register the given Job with the scheduler class
         """
         
+        # Don't register cron jobs if migrating as the django_cron tables themselves may not exist
+        if len(sys.argv) > 1 and (sys.argv[1] == 'migrate' or sys.argv[1] == 'makemigrations'):
+            return
+        
         # Move import here to silence Django 1.8 warnings about importing models early
         import models
         

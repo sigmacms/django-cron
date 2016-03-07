@@ -29,6 +29,7 @@ except ImportError:
     from datetime import datetime
     now = datetime.now
 
+
 class Job(models.Model):
     
     name = models.CharField(max_length=100)
