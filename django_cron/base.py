@@ -179,9 +179,7 @@ class CronScheduler(object):
                     Timer(polling_frequency, self.execute).start()
                 return
 
-            jobs = models.Job.objects.filter(queued=True)
-            if jobs and cron_settings.SINGLE_JOB_MODE:
-                jobs = [jobs[0]] # When SINGLE_JOB_MODE is on we only run one job at a time.
+            jobs = models.Job.objects.filter(queued=True).order_by('last_run')
 
             for job in jobs:
 
@@ -251,6 +249,11 @@ class CronScheduler(object):
                                 self.mail_exception(job.name, inst.__module__, err, stack)
                             else:
                                 print stack
+
+                    if cron_settings.SINGLE_JOB_MODE:
+                        break # When SINGLE_JOB_MODE is on we only run one job at a time.
+
+
             status.executing = False
             status.save()
 
