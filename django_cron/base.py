@@ -247,10 +247,8 @@ class CronScheduler(object):
                             import traceback
                             exc_info = sys.exc_info()
                             stack = ''.join(traceback.format_tb(exc_info[2]))
-                            if not settings.LOCAL_DEV:
-                                self.mail_exception(job.name, inst.__module__, err, stack)
-                            else:
-                                print stack
+                            self.mail_exception(job.name, inst.__module__, err, stack)
+                            
             status.executing = False
             status.save()
 
