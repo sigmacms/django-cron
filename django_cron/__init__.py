@@ -44,7 +44,7 @@ def autodiscover(start_timer=True, registering=True):
         # need to roll their own cron registration.
         try:
             app_path = __import__(app, {}, {}, [app.split('.')[-1]]).__path__
-        except AttributeError:
+        except (AttributeError, ImportError):
             continue
 
         # Step 2: use imp.find_module to find the app's admin.py. For some
