@@ -20,7 +20,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-
+import logging
 import os
 import cPickle
 from threading import Timer
@@ -29,11 +29,13 @@ from datetime import timedelta
 import sys
 import socket
 
+from django.db import ProgrammingError
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.core.mail import mail_admins
 from signals import cron_done
 import cron_settings
+
 
 HOUR = 60
 DAY = HOUR * 24
@@ -72,10 +74,6 @@ class CronScheduler(object):
         Register the given Job with the scheduler class
         """
         
-        # Don't register cron jobs if migrating as the django_cron tables themselves may not exist
-        if len(sys.argv) > 1 and (sys.argv[1] == 'migrate' or sys.argv[1] == 'makemigrations'):
-            return
-        
         # Move import here to silence Django 1.8 warnings about importing models early
         import models
         
@@ -84,13 +82,21 @@ class CronScheduler(object):
         if not isinstance(job_instance, Job):
             raise TypeError("You can only register a Job not a %r" % job_class)
 
-        job, created = models.Job.objects.get_or_create(name=str(job_instance.__class__))
-        if created:
-            job.instance = cPickle.dumps(job_instance)
-        job.args = cPickle.dumps(args)
-        job.kwargs = cPickle.dumps(kwargs)
-        job.run_frequency = job_instance.run_every
-        job.save()
+        try:
+            job, created = models.Job.objects.get_or_create(name=str(job_instance.__class__))
+            if created:
+                job.instance = cPickle.dumps(job_instance)
+            job.args = cPickle.dumps(args)
+            job.kwargs = cPickle.dumps(kwargs)
+            job.run_frequency = job_instance.run_every
+            job.save()
+        except ProgrammingError as e:
+            # Any managemment commands that run before the database tables have been created
+            #  will trigger an exception. Convert this into a warning. 
+            if "django_cron_job' doesn't exist" not in str(e):
+                raise
+            else:
+                logging.warn("Cron jobs not registered as tables don't yet exist")
 
     def unregister(self, job_class, *args, **kwargs):
         
