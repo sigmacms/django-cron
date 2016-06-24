@@ -29,7 +29,11 @@ from datetime import timedelta
 import sys
 import socket
 
-from django.db import ProgrammingError
+try:
+    from django.db import ProgrammingError
+except ImportError:
+    # make it compatible with older version of django
+    ProgrammingError = Exception
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.core.mail import mail_admins
