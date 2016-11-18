@@ -198,7 +198,10 @@ class CronScheduler(object):
                 # Discard the seconds to prevent drift. Thanks to Josh Cartmell
                 now = datetime.now()
                 now = datetime(now.year, now.month, now.day, now.hour, now.minute)
-                last_run = datetime(job.last_run.year, job.last_run.month, job.last_run.day, job.last_run.hour, job.last_run.minute)
+                if job.last_run:
+                    last_run = datetime(job.last_run.year, job.last_run.month, job.last_run.day, job.last_run.hour, job.last_run.minute)
+                else:
+                    last_run = datetime(2000,1,1)  # A long time ago.
                 since_last_run = now - last_run
                 inst = None
 
